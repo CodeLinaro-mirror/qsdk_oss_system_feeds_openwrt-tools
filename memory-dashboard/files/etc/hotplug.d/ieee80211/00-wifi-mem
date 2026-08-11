@@ -1,0 +1,8 @@
+#!/bin/sh
+
+if [ "$ACTION" = "add" ]; then
+        # First WiFi interface up → capture once
+        [ ! -f /tmp/meminfo.wifi ] && {
+        cat /proc/meminfo >> /tmp/meminfo.wifi
+        }
+fi
