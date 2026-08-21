@@ -48,7 +48,7 @@ Sections:
   vmallocinfo Vmalloc Allocations (/proc/vmallocinfo)
   procmem     Process Memory Analyzer
   arch        System Architecture (uname -m)
-
+  radio       Radio summary
 Examples:
   $0 -s meminfo,vmstat
   $0 -s procmem
@@ -494,4 +494,20 @@ if run_section arch; then
 	echo ""
 	echo "uname -m: $(uname -m)"
 	echo ""
+fi
+
+if run_section radio; then
+	echo "========================================================================"
+	echo "                    Radio Summary"
+	echo "========================================================================"
+	echo ""
+	printf "%-10s %-15s %-10s\n" "INTERFACE" "VAP" "CLIENTS"
+	printf "%-10s %-15s %-10s\n" "---------" "---" "-------"
+	iw dev | awk '
+	/^phy#/ { phy=$1 }
+	/Interface/ { print phy, $2 }
+	' | while read phy vap; do
+		clients=$(iw dev "$vap" station dump 2>/dev/null | awk '/^Station/{c++} END{print c+0}')
+		printf "%-10s %-15s %-10s\n" "$phy" "$vap" "$clients"
+	done
 fi
