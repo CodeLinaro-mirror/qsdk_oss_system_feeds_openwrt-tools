@@ -6,9 +6,9 @@
 #   memory_dashboard.sh -s SECTION,...   — run only specified section(s)
 #   memory_dashboard.sh -h               — show help
 #
-# Sections: meminfo, subsys, kernel, wifi, wifibins, reserved, iomem,
+# Sections: meminfo, subsys, kernel, wifi, wifibins, reserved, cma, iomem,
 #           memblock, dmesg, vmstat, sysinfo, lsmod, slabinfo,
-#           vmallocinfo, procmem
+#           vmallocinfo, procmem, arch
 
 usage() {
 	cat <<EOF
@@ -25,6 +25,7 @@ Sections:
   wifi        WiFi Firmware Memory Calculator
   wifibins    WiFi Firmware Binary Sizes (/lib/firmware/*/WIFI_FW)
   reserved    Reserved Memory Size Calculator
+  cma         Memory Consumption by CMA
   iomem       I/O Memory Map (/proc/iomem)
   memblock    Memblock Reserved Regions
   dmesg       Reserved Memory (dmesg)
@@ -34,6 +35,7 @@ Sections:
   slabinfo    Slab Allocator Info (/proc/slabinfo)
   vmallocinfo Vmalloc Allocations (/proc/vmallocinfo)
   procmem     Process Memory Analyzer
+  arch        System Architecture (uname -m)
 
 Examples:
   $0 -s meminfo,vmstat
@@ -231,6 +233,40 @@ if run_section reserved; then
 	done
 fi
 
+if run_section cma; then
+	echo "========================================================================"
+	echo "                    Memory Consumption by CMA"
+	echo "========================================================================"
+	echo ""
+	awk '/^CmaTotal:/ {print "Total CMA Memory: " $2 " " $3}
+	     /^CmaFree:/  {print "Total Free CMA Memory: " $2 " " $3}' /proc/meminfo
+	echo ""
+
+	CMA_DBG_BASE="/sys/kernel/debug/cma"
+	PAGE_KB=4
+
+	if [ -d "$CMA_DBG_BASE" ]; then
+		for count_file in "$CMA_DBG_BASE"/*/count; do
+			[ -f "$count_file" ] || continue
+			cma_dir=$(dirname "$count_file")
+			cma_name=$(basename "$cma_dir")
+			used_file="$cma_dir/used"
+
+			total_count=$(cat "$count_file")
+			used_count=0
+			[ -f "$used_file" ] && used_count=$(cat "$used_file")
+
+			echo "CMA Reserved Memory By $cma_name :"
+			echo "Total Reserved : $((total_count * PAGE_KB)) KB"
+			echo "Utilized       : $((used_count * PAGE_KB)) KB"
+			echo ""
+		done
+	else
+		echo "$CMA_DBG_BASE not found"
+		echo ""
+	fi
+fi
+
 if run_section iomem; then
 	echo "========================================================================"
 	echo "                    I/O Memory Map (/proc/iomem)"
@@ -312,4 +348,13 @@ if run_section procmem; then
 	echo "========================================================================"
 	echo ""
 	sh /usr/sbin/mem_analyzer.sh -a -t
+fi
+
+if run_section arch; then
+	echo "========================================================================"
+	echo "                    System Architecture"
+	echo "========================================================================"
+	echo ""
+	echo "uname -m: $(uname -m)"
+	echo ""
 fi
