@@ -1,4 +1,8 @@
 #!/bin/sh /etc/rc.common
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # mem-profile — Boot-time memory profile validator
 # START=00 | Validates mem-profile= bootarg against physical MemTotal
 

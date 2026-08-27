@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 
 . /lib/functions/uci-defaults.sh
 

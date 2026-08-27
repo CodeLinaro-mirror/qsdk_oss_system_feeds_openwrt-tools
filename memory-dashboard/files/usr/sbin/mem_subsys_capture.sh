@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # mem_subsys_capture.sh - Capture /proc/meminfo for a specific subsystem configuration.
 #
 # Usage:

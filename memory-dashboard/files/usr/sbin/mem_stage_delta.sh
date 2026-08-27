@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # mem_stage_delta.sh - Memory consumption by boot stage (platform/NSS/WiFi)
 #
 # Reads /proc/meminfo snapshots captured at three stages and reports

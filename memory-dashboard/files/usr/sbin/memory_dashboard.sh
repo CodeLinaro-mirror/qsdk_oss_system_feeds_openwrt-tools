@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # memory_dashboard.sh — Static memory snapshot for IPQ dashboard
 #
 # Usage:

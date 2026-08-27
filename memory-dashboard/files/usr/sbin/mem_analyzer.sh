@@ -1,4 +1,8 @@
 #!/bin/sh
+#
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # memory_analyzer.sh - Measure real physical memory usage in OpenWrt
 # Usage: ./memory_analyzer.sh [options]
 #   -a    Show all processes (default: only show user processes)

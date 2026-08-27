@@ -1,5 +1,8 @@
 #!/bin/sh
 #
+# Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+# SPDX-License-Identifier: ISC
+#
 # Script to calculate reserved memory size from device tree reg property
 # Usage: ./calculate_reserved_memory.sh [path_to_reg_file]
 #        ./calculate_reserved_memory.sh /sys/firmware/devicetree/base/reserved-memory/qcn9224_pcie1@50f00000/reg
