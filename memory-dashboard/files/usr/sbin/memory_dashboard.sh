@@ -10,7 +10,9 @@
 #   memory_dashboard.sh -s SECTION,...   — run only specified section(s)
 #   memory_dashboard.sh -h               — show help
 #
-# Sections: meminfo, subsys, kernel, wifi, wifibins, reserved, cma, iomem,
+# Sections: meminfo, subsys, kernel, wifi, wifi_cc, mhi, skb_recycler,
+#           wifibins,
+#           reserved, cma, iomem,
 #           memblock, dmesg, vmstat, sysinfo, lsmod, slabinfo,
 #           vmallocinfo, procmem, arch
 
@@ -27,6 +29,9 @@ Sections:
   subsys      Memory Consumption by SubSystem
   kernel      Kernel size
   wifi        WiFi Firmware Memory Calculator
+  wifi_cc     WiFi congestion-control runtime statistics
+  mhi         MHI FBC Firmware Memory Usage
+  skb_recycler SKB recycler counts and limits
   wifibins    WiFi Firmware Binary Sizes (/lib/firmware/*/WIFI_FW)
   reserved    Reserved Memory Size Calculator
   cma         Memory Consumption by CMA
@@ -192,6 +197,62 @@ if run_section wifi; then
 			echo 3 1 > "$dev/mac0/wmi_ctrl_stats"
 			cat "$dev/mac0/wmi_ctrl_stats"
 		fi
+	done
+fi
+
+if run_section wifi_cc; then
+	echo "========================================================================"
+	echo "                    WiFi Congestion Control Statistics"
+	echo "========================================================================"
+	echo ""
+	found=0
+	for cc_stats in "$DBG_BASE"/pci-*/svc_sorted_flow/congestion_ctrl_stats; do
+		[ -f "$cc_stats" ] || continue
+		found=1
+		device=${cc_stats#"$DBG_BASE"/}
+		device=${device%%/*}
+		echo "[$device]"
+		cat "$cc_stats"
+		echo ""
+	done
+	[ "$found" = "1" ] || echo "  No WiFi congestion-control statistics found"
+	echo ""
+fi
+
+if run_section mhi; then
+	echo "========================================================================"
+	echo "                    MHI FBC Firmware Memory Usage"
+	echo "========================================================================"
+	echo ""
+	found=0
+	for fbc_mem in /sys/bus/mhi/devices/*/fbc_mem_size; do
+		[ -f "$fbc_mem" ] || continue
+		found=1
+		device=${fbc_mem%/*}
+		device=${device##*/}
+		echo "[$device]"
+		cat "$fbc_mem"
+		echo ""
+	done
+	[ "$found" = "1" ] || echo "  No MHI FBC firmware memory attributes found"
+	echo ""
+fi
+
+if run_section skb_recycler; then
+	echo "========================================================================"
+	echo "                    SKB Recycler"
+	echo "========================================================================"
+	echo ""
+	SKB_RECYCLER_BASE="/proc/net/skb_recycler"
+	for stat in count max_skbs max_spare_skbs; do
+		stat_file="$SKB_RECYCLER_BASE/$stat"
+		if [ -f "$stat_file" ]; then
+			echo "[$stat]"
+			cat "$stat_file"
+		else
+			echo "$stat: not found"
+		fi
+		echo ""
 	done
 fi
 
