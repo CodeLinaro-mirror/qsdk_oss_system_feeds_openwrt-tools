@@ -8,6 +8,7 @@
 # Usage:
 #   memory_dashboard.sh                  — run all sections
 #   memory_dashboard.sh -s SECTION,...   — run only specified section(s)
+#   memory_dashboard.sh --no-drop-cache  — keep the kernel page cache intact
 #   memory_dashboard.sh -h               — show help
 #
 # Sections: meminfo, subsys, kernel, wifi, wifibins, reserved, cma, iomem,
@@ -16,10 +17,12 @@
 
 usage() {
 	cat <<EOF
-Usage: $0 [-s SECTION[,SECTION,...]] [-h]
+Usage: $0 [-s SECTION[,SECTION,...]] [-n|--no-drop-cache] [-h]
 
 Options:
   -s SECTION,...  Run only the specified section(s) (comma-separated)
+  -n, --no-drop-cache
+                  Do not drop the kernel page cache before collecting meminfo
   -h              Show this help message
 
 Sections:
@@ -73,14 +76,26 @@ get_physical_ddr_mb() {
 
 RUN_ALL=1
 SECTIONS=""
+DROP_CACHE=1
 
-while getopts "s:h" opt; do
-	case "$opt" in
-		s)
+while [ "$#" -gt 0 ]; do
+	case "$1" in
+		-s)
+			[ "$#" -ge 2 ] || usage
 			RUN_ALL=0
-			SECTIONS=$(echo "$OPTARG" | tr ',' ' ')
+			SECTIONS=$(echo "$2" | tr ',' ' ')
+			shift 2
 			;;
-		h)
+		-s*)
+			RUN_ALL=0
+			SECTIONS=$(echo "${1#-s}" | tr ',' ' ')
+			shift
+			;;
+		-n|--no-drop-cache)
+			DROP_CACHE=0
+			shift
+			;;
+		-h|--help)
 			usage
 			;;
 		*)
@@ -135,7 +150,7 @@ get_cmdline_profile() {
 }
 
 if run_section meminfo; then
-	echo 3 > /proc/sys/vm/drop_caches
+	[ "$DROP_CACHE" = "1" ] && echo 3 > /proc/sys/vm/drop_caches
 	echo ""
 	echo "  Board        : $(cat /tmp/sysinfo/board_name)"
 	echo "  Physical DDR : $(get_physical_ddr_mb) MB"
