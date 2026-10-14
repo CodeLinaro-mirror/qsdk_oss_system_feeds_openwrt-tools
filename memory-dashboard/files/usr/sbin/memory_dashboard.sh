@@ -240,16 +240,73 @@ if run_section mhi; then
 	echo "========================================================================"
 	echo ""
 	found=0
-	for fbc_mem in /sys/bus/mhi/devices/*/fbc_mem_size; do
+	endpoint_count=0
+	shared_ro_kb=0
+	total_rw_kb=0
+	refcount=0
+
+	# Use one FBC attribute per MHI endpoint. The parent MHI device and its
+	# protocol child can both expose this attribute.
+	mhi_files=$(for fbc_mem in /sys/bus/mhi/devices/*/fbc_mem_size; do
+		case "$fbc_mem" in
+			*/mhi*_IPCR/fbc_mem_size) [ -f "$fbc_mem" ] && echo "$fbc_mem" ;;
+		esac
+	done)
+	if [ -z "$mhi_files" ]; then
+		mhi_files=$(find /sys/devices -type f -path '*/mhi*_IPCR/fbc_mem_size' 2>/dev/null)
+	fi
+
+	for fbc_mem in $mhi_files; do
 		[ -f "$fbc_mem" ] || continue
 		found=1
+		endpoint_count=$((endpoint_count + 1))
 		device=${fbc_mem%/*}
 		device=${device##*/}
 		echo "[$device]"
 		cat "$fbc_mem"
+
+		ro_kb=$(awk '
+			/RO segments:/ {
+				gsub(/[()]/, "")
+				for (i = 1; i <= NF; i++)
+					if ($i == "KB") { print $(i - 1); exit }
+			}
+		' "$fbc_mem")
+		rw_kb=$(awk '
+			/RW segments:/ {
+				gsub(/[()]/, "")
+				for (i = 1; i <= NF; i++)
+					if ($i == "KB") { print $(i - 1); exit }
+			}
+		' "$fbc_mem")
+		current_refcount=$(awk '/RO refcount:/ {print $3; exit}' "$fbc_mem")
+		[ -n "$shared_ro_kb" ] && [ "$shared_ro_kb" -eq 0 ] && shared_ro_kb=${ro_kb:-0}
+		total_rw_kb=$((total_rw_kb + ${rw_kb:-0}))
+		[ "$refcount" -eq 0 ] && refcount=${current_refcount:-0}
 		echo ""
 	done
 	[ "$found" = "1" ] || echo "  No MHI FBC firmware memory attributes found"
+	if [ "$found" = "1" ]; then
+		without_sharing_kb=$((endpoint_count * shared_ro_kb + total_rw_kb))
+		with_sharing_kb=$((shared_ro_kb + total_rw_kb))
+		saved_kb=$((without_sharing_kb - with_sharing_kb))
+		if [ "$without_sharing_kb" -gt 0 ]; then
+			savings=$((saved_kb * 100 / without_sharing_kb))
+		else
+			savings=0
+		fi
+
+		echo "========== Summary =========="
+		echo "Endpoints       : $endpoint_count"
+		echo "Shared RO       : $shared_ro_kb KB"
+		echo "Total RW        : $total_rw_kb KB"
+		echo "Refcount        : $refcount"
+		echo ""
+		echo "Without Sharing : $((without_sharing_kb / 1024)) MB"
+		echo "With Sharing    : $((with_sharing_kb / 1024)) MB"
+		echo "Memory Saved    : $((saved_kb / 1024)) MB"
+		echo "Savings         : $savings%"
+	fi
 	echo ""
 fi
 
